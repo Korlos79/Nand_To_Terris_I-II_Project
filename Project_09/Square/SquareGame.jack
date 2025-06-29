@@ -1,0 +1,168 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/09/Square/SquareGame.jack
+
+/**
+ * Implements the Square Dance game.
+ * This simple game allows the user to move a black square around
+ * the screen, and change the square's size during the movement.
+ * When the game starts, a square of 30 by 30 pixels is shown at the
+ * top-left corner of the screen. The user controls the square as follows.
+ * The 4 arrow keys are used to move the square up, down, left, and right.
+ * The 'z' and 'x' keys are used, respectively, to decrement and increment
+ * the square's size. The 'q' key is used to quit the game.
+ */
+
+class SquareGame {
+    field Square square, food; // the square of this game
+    field int direction, foodx, foody, score; 	// the square's current direction: 
+										// 0=none, 1=up, 2=down, 3=left, 4=right
+	field boolean exit;
+	field char key;  // the key currently pressed by the user
+
+   /** Constructs a new Square Game. */
+    constructor SquareGame new() {
+		// Creates a 30 by 30 pixels square and positions it at the top-left
+		// of the screen.
+		let square = Square.new(20, 20, 50);
+		let direction = 0;  // initial state is no movement
+		let foodx = 250;
+		let foody = 117;
+		let food = Square.new(foody, foodx, 5);
+		return this;
+    }
+
+   /** Disposes this game. */
+   method void dispose() {
+      do square.dispose();
+	  do food.dispose();
+      do Memory.deAlloc(this);
+      return;
+   }
+
+   /** Moves the square in the current direction. */
+   method void moveSquare() {
+      if (direction = 1) { do square.moveUp(); }
+      if (direction = 2) { do square.moveDown(); }
+      if (direction = 3) { do square.moveLeft(); }
+      if (direction = 4) { do square.moveRight(); }
+      do Sys.wait(2);  // delays the next movement
+      return;
+   }
+   
+	
+   
+   
+    method boolean checkFood() {
+		if ((food.getx() > square.getx()) & (food.getx() < (square.getx() + square.getSize())) & (food.gety() > square.gety()) & (food.gety() < (square.gety() + square.getSize()))) {
+			return true;
+		}
+		if (((food.getx() + food.getSize()) > square.getx()) & ((food.getx() + food.getSize()) < (square.getx() + square.getSize())) & ((food.gety() + food.getSize()) > square.gety()) & ((food.gety() + food.getSize()) < (square.gety() + square.getSize()))) {
+			return true;
+		}
+		return false;
+	}
+	
+	method boolean checkOOB() {
+		if ((square.getx() < 1) | ((square.getx() + square.getSize()) > 510) | (square.gety() < 15) | ((square.gety() + square.getSize()) > 253)) {
+			return true;
+		}
+		return false;
+	}
+	
+	method void printScore() {
+		do Output.moveCursor(0, 0);
+		do Output.printString("Score: ");
+		do Output.printInt(score);
+		return;
+	}
+	
+	method void newGame() {
+		var int seed;
+		let score = 0;
+		let key = 0;
+		do Output.moveCursor(12, 20);
+		do Output.printString("Press any key to start");
+				
+		while (key = 0) {
+			do Sys.wait(5);
+			let seed = seed + 1;
+			let key = Keyboard.keyPressed();
+		}
+			
+		do LCGRandom.setSeed(seed);
+		do Screen.clearScreen();
+		do printScore();
+		do Screen.drawLine(0, 15, 510, 15);
+		do square.setPosition(20, 20);
+		do square.setSize(50);
+		let foodx = LCGRandom.randRange(50, 450);
+		let foody = LCGRandom.randRange(65, 204);
+		do food.setPosition(foody, foodx);
+		let key = 132;
+		return;
+	}
+	
+	
+	method void checkCollisions() {
+		if (checkFood()) {
+			let foodx = LCGRandom.randRange(50, 450);
+			let foody = LCGRandom.randRange(65, 204);
+			do food.setPosition(foody, foodx);
+			do square.decSize();
+			let score = score + 1;
+			do printScore();
+		}	
+		if (checkOOB()) {
+			do Screen.clearScreen();
+			do printScore();
+			do Output.moveCursor(12, 20);
+			do Output.printString("You Lose. Play Again? Y/N");
+			let key = Keyboard.readChar();
+			if (key = 89) {
+				do Screen.clearScreen();
+				do newGame();
+				return;
+			}
+			let exit = true;
+			return;	
+		}
+		return;
+	}
+
+   /** Runs the game: handles the user's inputs and moves the square accordingly */
+	method void run() {
+
+		let exit = false;
+		do newGame();
+		
+		
+		while (~exit) {
+			// waits for a key to be pressed
+			
+			while (key = 0) {
+				let key = Keyboard.keyPressed();
+				do checkCollisions();
+				do moveSquare();
+			}
+			
+			if (key = 81)  { let exit = true; }     // q key
+			if (key = 131) { let direction = 1; }   // up arrow
+			if (key = 133) { let direction = 2; }   // down arrow
+			if (key = 130) { let direction = 3; }   // left arrow
+			if (key = 132) { let direction = 4; }   // right arrow
+
+			// waits for the key to be released
+			while (~(key = 0)) {
+				let key = Keyboard.keyPressed();
+				do checkCollisions();
+				do moveSquare();
+			}
+		} // while
+		return;
+	}
+}
+
+
+
