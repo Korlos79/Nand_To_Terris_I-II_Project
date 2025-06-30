@@ -1,0 +1,37 @@
+class Random {
+    field int seed;
+
+    constructor Random new(int initialSeed) {
+        let seed = initialSeed;
+        return this;
+    }
+
+    method int rand() {
+        let seed = seed + 1;
+        if (seed > 32767) {
+            let seed = seed - 32767;
+        }
+        return seed;
+    }
+
+    method int randRange(int min, int max) {
+        var int range, randomValue, result;
+        
+        let range = max - min + 1;
+        let randomValue = rand();
+        
+        // Xử lý số âm
+        if (randomValue < 0) {
+            let randomValue = -randomValue;
+        }
+        
+        let result = min + (randomValue - ((randomValue / range) * range));
+        
+        return result;
+    }
+
+    method void dispose() {
+        do Memory.deAlloc(this);
+        return;
+    }
+}

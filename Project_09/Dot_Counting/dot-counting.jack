@@ -1,0 +1,74 @@
+class DotCounting {
+    var int numbean, guess;
+    var int x, y;
+    var int level, delayTime;
+
+    constructor DotCounting new() {
+        let this.numbean = Math.floor((Math.random() * 6) + 3);
+        let this.guess = 0;
+        return this;
+    }
+
+    method void chooseLevel() {
+        var int input;
+        do Output.printString("Choose level: 1=Easy, 2=Normal, 3=Hard");
+        do Output.println();
+        let input = Keyboard.readInt("Your choice: ");
+        let this.level = input;
+
+        if (this.level = 1) {
+            let this.delayTime = 10000; 
+        }
+        if (this.level = 2) {
+            let this.delayTime = 7000; 
+        }
+        if (this.level = 3) {
+            let this.delayTime = 4000; 
+        }
+    }
+
+    method void drawBeans() {
+        var int i;
+        let i = 0;
+        while (i < this.numbean) {
+            let this.x = Math.floor(Math.random() * 512);
+            let this.y = Math.floor(Math.random() * 256);
+            do Screen.drawPixel(this.x, this.y);
+            let i = i + 1;
+        }
+    }
+
+    method void delay(int time) {
+        var int i;
+        let i = 0;
+        while (i < time) {
+            let i = i + 1;
+        }
+    }
+
+    method int getGuess() {
+        let this.guess = Keyboard.readInt("How many beans did you see?");
+        return this.guess;
+    }
+
+    method void showAnswer() {
+        do Output.printString("Correct answer: ");
+        do Output.printInt(this.numbean);
+        do Output.println();
+
+        do Output.printString("Your answer: ");
+        do Output.printInt(this.guess);
+        do Output.println();
+    }
+
+    method void checkGuess() {
+        if (this.guess = this.numbean) {
+            do Output.printString("You win! :)");
+            do Output.println();
+        } else {
+            do Output.printString("Try again! :>");
+            do Output.println();
+            do this.showAnswer(); 
+        }
+    }
+}

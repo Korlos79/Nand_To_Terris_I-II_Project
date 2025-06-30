@@ -1,0 +1,11 @@
+function Main.main 1
+call DotCounting.new 0
+pop local 0
+push local 0
+call DotCounting.run 1
+pop temp 0
+push local 0
+call DotCounting.dispose 1
+pop temp 0
+push constant 0
+return

@@ -1,0 +1,211 @@
+class DotCounting {
+    field int numDots, guess;
+    field int level, delayTime;
+    field int score, rounds;
+    field boolean gameRunning;
+    field Random rng;
+    field int same;
+
+    /** Creates a new DotCounting game */
+    constructor DotCounting new() {
+        let numDots = 3;
+        let guess = 0;
+        let score = 0;
+        let rounds = 0;
+        let gameRunning = true;
+        let rng = 0;
+        let same = 0;
+        return this;
+    }
+
+    /** Main game loop */
+    method void run() {
+        var char key;
+        do chooseLevel();
+
+        while (gameRunning) {
+            let numDots = rng.randRange(1, 3 + (level * 2));
+
+            do Screen.clearScreen();
+            do drawInstructions();
+            do delay(2000);
+
+            do Screen.clearScreen();
+            do drawDots();
+            do delay(delayTime);
+
+            do Screen.clearScreen();
+            do getGuess();
+            do checkGuess();
+
+            let rounds = rounds + 1;
+
+            if (~Keyboard.keyPressed()) {
+                let key = Keyboard.readChar();
+                if (key = 113) {
+                    let gameRunning = false;
+                } else {
+                    do run();
+                }
+            }
+        }
+
+        do showFinalScore();
+        return;
+    }
+
+    /** Let the player choose game difficulty */
+    method void chooseLevel() {
+        var int input;
+        var int choose;
+        do Screen.clearScreen();
+        do Output.moveCursor(5, 10);
+        do Output.printString("DOT COUNTING GAME");
+        do Output.moveCursor(7, 10);
+        do Output.printString("Choose level:");
+        do Output.moveCursor(9, 12);
+        do Output.printString("1 = Easy   (10 seconds)");
+        do Output.moveCursor(10, 12);
+        do Output.printString("2 = Normal (7 seconds)");
+        do Output.moveCursor(11, 12);
+        do Output.printString("3 = Hard   (4 seconds)");
+
+        do Output.moveCursor(13, 10);
+        let input = Keyboard.readInt("Your choice (1-3): ");
+
+        while ((input < 1) | (input > 3)) {
+            do Output.moveCursor(14, 10);
+            do Output.printString("Invalid choice. Try again.");
+            do Output.moveCursor(15, 10);
+            let input = Keyboard.readInt("Your choice (1-3): ");
+        }
+        do Output.moveCursor(16, 10);
+        let choose = Keyboard.readInt("Seed (Random): ");
+        let rng = Random.new(choose - same);
+
+        let level = input;
+
+        if (input = 1) {
+            let delayTime = 10000;
+        }
+        if (input = 2) {
+            let delayTime = 7000;
+        }
+        if (input = 3) {
+            let delayTime = 4000;
+        }
+
+        return;
+    }
+
+    /** Show brief instructions before dots appear */
+    method void drawInstructions() {
+        do Output.moveCursor(10, 10);
+        do Output.printString("Get ready to count the dots!");
+        do Output.moveCursor(12, 10);
+        do Output.printString("They will appear for a short time");
+        do Output.moveCursor(14, 10);
+        do Output.printString("Current score: ");
+        do Output.printInt(score);
+        return;
+    }
+
+    /** Draw random dots on the screen */
+    method void drawDots() {
+        var int i, x, y, size, lastX, lastY;
+        let i = 0;
+        let size = 5;
+        let lastX = 0;
+        let lastY = 0;
+
+        while (i < numDots) {
+            let x = rng.randRange(10, 500);
+            let y = rng.randRange(10, 240);
+
+        // Nếu khoảng cách quá gần, thì lấy lại
+        while (((x - lastX)*(x - lastX) + (y - lastY)*(y - lastY)) < 400) {
+            let x = rng.randRange(10, 500);
+            let y = rng.randRange(10, 240);
+        }
+
+        let lastX = x;
+        let lastY = y;
+
+        do Screen.setColor(true);
+        do Screen.drawCircle(x, y, size);
+
+        let i = i + 1;
+        }
+    return;
+    }
+
+    /** Simple delay function */
+    method void delay(int time) {
+        var int i;
+        let i = 0;
+        while (i < time) {
+            let i = i + 1;
+        }
+        return;
+    }
+
+    /** Get player's guess */
+    method void getGuess() {
+        do Output.moveCursor(10, 10);
+        let guess = Keyboard.readInt("How many dots did you see? ");
+        return;
+    }
+
+    /** Check if guess is correct and update score */
+    method void checkGuess() {
+        do Output.moveCursor(12, 10);
+        do Output.printString("Correct answer: ");
+        do Output.printInt(numDots);
+        do Output.println();
+
+        do Output.moveCursor(13, 10);
+        do Output.printString("Your answer: ");
+        do Output.printInt(guess);
+        do Output.println();
+
+        do Output.moveCursor(15, 10);
+        if (guess = numDots) {
+            do Output.printString("Correct! +1 point");
+            let score = score + 1;
+        } else {
+            do Output.printString("Wrong! No points");
+        }
+
+        do Output.moveCursor(17, 10);
+        do Output.printString("Current score: ");
+        do Output.printInt(score);
+        do Output.println();
+
+        do Output.moveCursor(19, 10);
+        do Output.printString("Press any key to continue or 'q' to quit");
+        return;
+    }
+
+    /** Show final score */
+    method void showFinalScore() {
+        do Screen.clearScreen();
+        do Output.moveCursor(10, 10);
+        do Output.printString("Game Over!");
+        do Output.moveCursor(12, 10);
+        do Output.printString("Final Score: ");
+        do Output.printInt(score);
+        do Output.moveCursor(13, 10);
+        do Output.printString("Out of ");
+        do Output.printInt(rounds);
+        do Output.printString(" rounds");
+        return;
+    }
+
+    /** Dispose method */
+    method void dispose() {
+        do Memory.deAlloc(this);
+        return;
+    }
+}
+
+
