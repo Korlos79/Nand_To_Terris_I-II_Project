@@ -1,0 +1,327 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: hw09-nscudder/String.jack
+// Implemented by: Nathanael Scudder <nathanael478@gmail.com>
+// Last modified: 1:05 PM 4/20/2018
+
+/**
+ * Represents character strings. In addition for constructing and disposing
+ * strings, the class features methods for getting and setting individual
+ * characters of the string, for erasing the string's last character,
+ * for appending a character to the string's end, and more typical
+ * string-oriented operations.
+ */
+class String 
+{
+	// Holds the characters contained in the String
+	field Array characters;
+	
+	// Holds how many characters are contained within the String.
+	field int length;
+	
+    /** 
+	 *	Constructs a new empty string with a maximum length of maxLength
+     *  and initial length of 0. A maxLength of less than 1 will result 
+	 *	in a maximum length of 1.
+	 *	
+	 *	PRECONDITION: Memory.init() has been invoked.
+	 *  POSTCONDITION: The new String object for the given maxLength is constructed and returned.
+	 *  
+	 */
+    constructor String new(int maxLength) 
+	{
+		// If maxLength is less than 1, in order to follow Array's convention, set the length to 1 instead.
+		if(maxLength < 1)
+		{
+			let characters = Array.new(1);
+		}
+		else
+		{
+			let characters = Array.new(maxLength);
+		}
+		
+		let length = 0;
+		return this;
+    }
+	
+	/** 
+	 *	Disposes this string.
+	 *	
+	 *	PRECONDITION: Memory.init() has been invoked.
+	 *  POSTCONDITION: This String object is deallocated from memory.
+	 *  
+	 */
+    method void dispose() 
+	{
+		do characters.dispose();
+		do Memory.deAlloc(this);
+		return;
+    }
+	
+	/** 
+	 *	Returns the current length of this string.
+	 *	
+	 *	PRECONDITION: N/A
+	 *  POSTCONDITION: Returns the current length of this string.
+	 *  
+	 */
+    method int length() 
+	{
+		return length;
+    }
+
+	/** 
+	 *	Returns the character at the index-th location of this string.
+	 *  If index is outside the String, 0 will be returned.
+	 *	
+	 *	PRECONDITION: This String contains at least one value & Memory.init() has been invoked.
+	 *  POSTCONDITION: Returns the character at the index-th location of this string.
+	 *  
+	 */
+    method char charAt(int index) 
+	{
+		// If index is outside the bounds of this String (index >= length), return 0.
+		if((index > length) | (index = length))
+		{
+			return 0;
+		}
+		
+		return characters[index];
+    }
+
+	/** 
+	 *	Sets the character at the index-th location of this string to the specified character.
+	 *  If index is outside the String, the method does nothing.
+	 *	
+	 *	PRECONDITION: This String contains at least one value & Memory.init() has been invoked.
+	 *  POSTCONDITION: Sets the character at the index-th location of this string to the specified character.
+	 *  
+	 */
+    method void setCharAt(int index, char characterToSet)
+	{
+		// If index is outside the bounds of this String (index >= length), end the method.
+		if((index > length) | (index = length))
+		{
+			return;
+		}
+		
+		let characters[index] = characterToSet;
+		return;
+    }
+
+	/** 
+	 *	Appends the specified to this string's end and returns this string.
+	 *	
+	 *	PRECONDITION: Memory.init() has been invoked.
+	 *  POSTCONDITION: Appends the specified character to this string's end and returns this string.
+	 *				   The length of this String is then incremented.
+	 *  
+	 */
+    method String appendChar(char characterToAppend) 
+	{
+		let characters[length] = characterToAppend;
+		let length = length + 1;
+		return this;
+    }
+
+	/** 
+	 *	Erases the last character from this string. If this String is empty this method does nothing.
+	 *	
+	 *	PRECONDITION: This String contains at least one value.
+	 *  POSTCONDITION: Length is decremented to "erase" the last character.
+	 *  
+	 */
+    method void eraseLastChar() 
+	{
+		// If this String is already empty, do nothing.
+		if(length = 0)
+		{
+			return;
+		}
+		
+		let length = length - 1;
+		return;
+    }
+
+	/** 
+	 *	Returns the integer value of this string, until a non-digit character is detected.
+	 *  Returns 0 in the event this String is empty.
+	 *	
+	 *	PRECONDITION: Memory.init() has been invoked.
+	 *  POSTCONDITION: Converts this String into the int value it represents 
+	 *				   (i. e. "100" is translated to the int 100) and then returns it.
+	 *  
+	 */
+    method int intValue() 
+	{
+		var int iterationCount;     // To count how many times the while loop has iterated.
+		var int currentCharacter;   // To hold character currently being translated in the String.
+		var int translatedInt;      // To hold the translated value to return.
+		var boolean negativeNumber; // To hold whether this String is a negative number.
+		
+		// Start currentCharacter at the most significant value in this String. (The left most value)
+		let currentCharacter = characters[0];
+		
+		// If this String is empty, return 0.
+		if(length = 0)
+		{
+			return 0;
+		}
+		
+		// If the first character in the String is an '-', set that this String is a negative number,
+		// then process the String in the same way, but starting at index 1.
+		if(currentCharacter = 45)
+		{
+			let negativeNumber = true;
+			let iterationCount = 1;
+			let currentCharacter = characters[1];
+		}
+		else
+		{
+			let iterationCount = 0;
+		}
+		
+		let translatedInt = 0;
+		
+		// While currentCharacter is within ['0', '9'] (interval notation), and iterationCount is less than the length of this String. 
+		while((currentCharacter > 47) & (currentCharacter < 58) & (iterationCount < length))
+		{
+			// Multiply the current value of translatedInt by 10 (shifting it to the left effectively), then remove 48 from
+			// currentCharacter (translating back into an int from a char), and add that to translatedInt.
+			let translatedInt = Math.multiply(translatedInt, 10) + (currentCharacter - 48);
+			
+			// Increment the iteration count and set currentCharacter to the next character in the String.
+			let iterationCount = iterationCount + 1;
+			let currentCharacter = characters[iterationCount];
+		}
+		
+		// If this String was a negative number, return the negative value of translatedInt, else just return translatedInt.
+		if(negativeNumber)
+		{
+			return -translatedInt;
+		}
+		else
+		{
+			return translatedInt;
+		}
+    }
+
+	/** 
+	 *	Sets this string to hold a representation of the given value.
+	 *	
+	 *	PRECONDITION: This String is empty, and its maximumLength can support the given number & Memory.init() has been invoked.
+	 *  POSTCONDITION: Sets this string to hold a representation of the given value. 
+	 *				   (i. e. the int 100 is translated to the String "100")
+	 *  
+	 */
+    method void setInt(int valueToSet) 
+	{
+		var int nextMostSignificantDigit; // To hold the most significant digit of valueLeft. (left most digit)
+		var int valueLeft;				  // To hold the value as changes while it is translated.
+		var int decimalLength;            // To hold the length of valueLeft.
+		
+		// Reference table for powers of 10.
+		var Array powersOfTen;
+		let powersOfTen = Array.new(6);
+		let powersOfTen[1] = 1;
+		let powersOfTen[2] = 10;
+		let powersOfTen[3] = 100;
+		let powersOfTen[4] = 1000;
+		let powersOfTen[5] = 10000;
+		
+		// Restart length
+		let length = 0;
+		
+		// If valueToSet is equal to 0, append 0 to this String, then end the method.
+		if(valueToSet = 0)
+		{
+			do appendChar(48);
+			return;
+		}
+		
+		// If the given int is negative, append '-' to this String, and then set valueLeft to the
+		// positive version of valueToSet, else just set valueLeft to valueToSet.
+		if(valueToSet < 0)
+		{
+			do appendChar(45);
+			let valueLeft = -valueToSet;
+		}
+		else
+		{
+			let valueLeft = valueToSet;
+		}
+		
+		// Start nextMostSignificantDigit to valueLeft.
+		let nextMostSignificantDigit = valueLeft;
+		
+		// While valueLeft is greater than 0.
+		while(valueLeft > 0)
+		{
+			// Start decimalLength at 1, and reset nextMostSignificantDigit to valueLeft.
+			let decimalLength = 1;
+			let nextMostSignificantDigit = valueLeft;
+			
+			// Divide nextMostSignificantDigit by 10 until it is less than 10 (reducing it to one digit), increase decimalLength each iteration.
+			while(nextMostSignificantDigit > 10)
+			{
+				let nextMostSignificantDigit = nextMostSignificantDigit / 10;
+				let decimalLength = decimalLength + 1;
+			}
+			
+			// Translate nextMostSigniciantDigit from its int value to its char value by adding 48, then append it to this String.
+			do appendChar(nextMostSignificantDigit + 48);
+			
+			// Subtract nextMostSignificantDigit, multiplied by 10 to the power of decimalLength, from valueLeft.
+			// This effectively removes the most significant digit.
+			let valueLeft = valueLeft - (nextMostSignificantDigit * powersOfTen[decimalLength]);
+		}
+		
+		return;
+    }
+
+	/** 
+	 *	Returns the new line character.
+	 *	
+	 *	PRECONDITION: N/A
+	 *  POSTCONDITION: Returns a char variable for the newline character '\n', which cannot be used directly normally,
+     *	               and has to be used indirectly using this method
+	 *  
+	 */
+    function char newLine() 
+	{
+		var char newLine;
+		let newLine = 128; // 128 = '\n'
+		return newLine;
+    }
+
+	/** 
+	 *	Returns the backspace character.
+	 *	
+	 *	PRECONDITION: N/A
+	 *  POSTCONDITION: Returns a char variable for the backspace character '\b', which cannot be used directly normally,
+     *	               and has to be used indirectly using this method
+	 *  
+	 */
+    function char backSpace() 
+	{
+		var char backSpace;
+		let backSpace = 129; // 129 = '\b'
+		return backSpace;
+    }
+
+	/** 
+	 *	Returns the double quote (") character.
+	 *	
+	 *	PRECONDITION: N/A
+	 *  POSTCONDITION: Returns a char variable for the double quote character '"', which cannot be used directly normally,
+     *	               and has to be used indirectly using this method
+	 *  
+	 */
+    function char doubleQuote() 
+	{
+		var char doubleQuote;
+		let doubleQuote = 34; // 34 = '"'
+		return doubleQuote;
+    }
+}

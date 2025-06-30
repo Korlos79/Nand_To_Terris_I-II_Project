@@ -1,0 +1,547 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: hw09-nscudder/Output.jack
+// Implemented by: Nathanael Scudder <nathanael478@gmail.com>
+// Last modified: 1:17 PM 4/20/2018
+
+/**
+ * A library of functions for writing text on the screen.
+ * The Hack physical screen consists of 512 rows of 256 pixels each.
+ * The library uses a fixed font, in which each character is displayed 
+ * within a frame which is 11 pixels high (including 1 pixel for inter-line 
+ * spacing) and 8 pixels wide (including 2 pixels for inter-character spacing).
+ * The resulting grid accommodates 23 rows (indexed 0..22, top to bottom)
+ * of 64 characters each (indexed 0..63, left to right). The top left 
+ * character position on the screen is indexed (0,0). A cursor, implemented
+ * as a small filled square, indicates where the next character will be displayed.
+ */
+class Output 
+{
+    // Character map for displaying characters
+    static Array charMaps; 
+	
+	// Holds the row the cursor is currently placed at.
+	static int cursorRow;
+	
+	// Holds the column the cursor is currently placed at.
+	static int cursorColumn;
+	
+	// Holds how many pixels are in a row. (11)
+	static int rowWidth;
+	
+	// Holds how many pixels are in a column. (8)
+	static int columnWidth;
+	
+	// Holds the total value of rows in the screen. (22)
+	static int maxRows;
+	
+	// Holds the total value of columns in the screen. (63)
+	static int maxColumns;
+	
+	// Holds factors of two.
+	static Array powersOfTwo;
+	
+	// Holds boolean values for whether to change the left side or right side of a register to print the char for the current column.
+	static Array registerSideToUse;
+	
+
+    /**
+	 * Initializes Output, and locates the cursor at the screen's top-left. 
+	 *
+	 * PRECONDITION: N/A
+	 * POSTCONDITION: Initialises the static variables for Output.
+	 *
+	 */
+    function void init() 
+	{
+		// Initialise the static variables.
+		let cursorRow = 0;
+		let cursorColumn = 0;
+		let rowWidth = 11;
+		let columnWidth = 8;
+		let maxRows = 22;
+		let maxColumns = 63;
+		
+		// Load all values for 2 to the power of some number that can be displayed in 16 bit.
+		let powersOfTwo = Array.new(16);
+		let powersOfTwo[0] = 1;
+		let powersOfTwo[1] = 2;
+		let powersOfTwo[2] = 4;
+		let powersOfTwo[3] = 8;
+		let powersOfTwo[4] = 16;
+		let powersOfTwo[5] = 32;
+		let powersOfTwo[6] = 64;
+		let powersOfTwo[7] = 128;
+		let powersOfTwo[8] = 256;
+		let powersOfTwo[9] = 512;
+		let powersOfTwo[10] = 1024;
+		let powersOfTwo[11] = 2048;
+		let powersOfTwo[12] = 4096;
+		let powersOfTwo[13] = 8192;
+		let powersOfTwo[14] = 16384;
+		let powersOfTwo[15] = 32767; // one less than 2^15, as we can only express 2^15-1 in 16 bits.
+		
+		// For even column values, the boolean for that index should be false, and then true for odd values.
+		let registerSideToUse = Array.new(64);
+		
+		let registerSideToUse[0] = false;
+		let registerSideToUse[1] = true;
+		let registerSideToUse[2] = false;
+		let registerSideToUse[3] = true;
+		let registerSideToUse[4] = false;
+		let registerSideToUse[5] = true;
+		let registerSideToUse[6] = false;
+		let registerSideToUse[7] = true;
+		let registerSideToUse[8] = false;
+		let registerSideToUse[9] = true;
+		let registerSideToUse[10] = false;
+		let registerSideToUse[11] = true;
+		let registerSideToUse[12] = false;
+		let registerSideToUse[13] = true;
+		let registerSideToUse[14] = false;
+		let registerSideToUse[15] = true;
+		let registerSideToUse[16] = false;
+		let registerSideToUse[17] = true;
+		let registerSideToUse[18] = false;
+		let registerSideToUse[19] = true;
+		let registerSideToUse[20] = false;
+		let registerSideToUse[21] = true;
+		let registerSideToUse[22] = false;
+		let registerSideToUse[23] = true;
+		let registerSideToUse[24] = false;
+		let registerSideToUse[25] = true;
+		let registerSideToUse[26] = false;
+		let registerSideToUse[27] = true;
+		let registerSideToUse[28] = false;
+		let registerSideToUse[29] = true;
+		let registerSideToUse[30] = false;
+		let registerSideToUse[31] = true;
+		let registerSideToUse[32] = false;
+		let registerSideToUse[33] = true;
+		let registerSideToUse[34] = false;
+		let registerSideToUse[35] = true;
+		let registerSideToUse[36] = false;
+		let registerSideToUse[37] = true;
+		let registerSideToUse[38] = false;
+		let registerSideToUse[39] = true;
+		let registerSideToUse[40] = false;
+		let registerSideToUse[41] = true;
+		let registerSideToUse[42] = false;
+		let registerSideToUse[43] = true;
+		let registerSideToUse[44] = false;
+		let registerSideToUse[45] = true;
+		let registerSideToUse[46] = false;
+		let registerSideToUse[47] = true;
+		let registerSideToUse[48] = false;
+		let registerSideToUse[49] = true;
+		let registerSideToUse[50] = false;
+		let registerSideToUse[51] = true;
+		let registerSideToUse[52] = false;
+		let registerSideToUse[53] = true;
+		let registerSideToUse[54] = false;
+		let registerSideToUse[55] = true;
+		let registerSideToUse[56] = false;
+		let registerSideToUse[57] = true;
+		let registerSideToUse[58] = false;
+		let registerSideToUse[59] = true;
+		let registerSideToUse[60] = false;
+		let registerSideToUse[61] = true;
+		let registerSideToUse[62] = false;
+		let registerSideToUse[63] = true;
+		
+		// Initialise the bit maps for all characters.
+		do Output.initMap();
+		
+		return;
+    }
+	
+	/**
+	 * Initializes the character map array
+	 *
+	 * PRECONDITION: is invoked by init().
+	 * POSTCONDITION: Initialises the character map that holds the bit maps for all printable characters.
+	 *
+	 */
+    function void initMap() 
+	{
+        var int i;
+    
+        let charMaps = Array.new(127);
+        
+        // Black square, used for displaying non-printable characters.
+        do Output.create(0,63,63,63,63,63,63,63,63,63,0,0);
+
+        // Assigns the bitmap for each character in the charachter set.
+        // The first parameter is the character index, the next 11 numbers
+        // are the values of each row in the frame that represents this character.
+        do Output.create(32,0,0,0,0,0,0,0,0,0,0,0);          //
+        do Output.create(33,12,30,30,30,12,12,0,12,12,0,0);  // !
+        do Output.create(34,54,54,20,0,0,0,0,0,0,0,0);       // "
+        do Output.create(35,0,18,18,63,18,18,63,18,18,0,0);  // #
+        do Output.create(36,12,30,51,3,30,48,51,30,12,12,0); // $
+        do Output.create(37,0,0,35,51,24,12,6,51,49,0,0);    // %
+        do Output.create(38,12,30,30,12,54,27,27,27,54,0,0); // &
+        do Output.create(39,12,12,6,0,0,0,0,0,0,0,0);        // '
+        do Output.create(40,24,12,6,6,6,6,6,12,24,0,0);      // (
+        do Output.create(41,6,12,24,24,24,24,24,12,6,0,0);   // )
+        do Output.create(42,0,0,0,51,30,63,30,51,0,0,0);     // *
+        do Output.create(43,0,0,0,12,12,63,12,12,0,0,0);     // +
+        do Output.create(44,0,0,0,0,0,0,0,12,12,6,0);        // ,
+        do Output.create(45,0,0,0,0,0,63,0,0,0,0,0);         // -
+        do Output.create(46,0,0,0,0,0,0,0,12,12,0,0);        // .    
+        do Output.create(47,0,0,32,48,24,12,6,3,1,0,0);      // /
+        
+        do Output.create(48,12,30,51,51,51,51,51,30,12,0,0); // 0
+        do Output.create(49,12,14,15,12,12,12,12,12,63,0,0); // 1
+        do Output.create(50,30,51,48,24,12,6,3,51,63,0,0);   // 2
+        do Output.create(51,30,51,48,48,28,48,48,51,30,0,0); // 3
+        do Output.create(52,16,24,28,26,25,63,24,24,60,0,0); // 4
+        do Output.create(53,63,3,3,31,48,48,48,51,30,0,0);   // 5
+        do Output.create(54,28,6,3,3,31,51,51,51,30,0,0);    // 6
+        do Output.create(55,63,49,48,48,24,12,12,12,12,0,0); // 7
+        do Output.create(56,30,51,51,51,30,51,51,51,30,0,0); // 8
+        do Output.create(57,30,51,51,51,62,48,48,24,14,0,0); // 9
+        
+        do Output.create(58,0,0,12,12,0,0,12,12,0,0,0);      // :
+        do Output.create(59,0,0,12,12,0,0,12,12,6,0,0);      // ;
+        do Output.create(60,0,0,24,12,6,3,6,12,24,0,0);      // <
+        do Output.create(61,0,0,0,63,0,0,63,0,0,0,0);        // =
+        do Output.create(62,0,0,3,6,12,24,12,6,3,0,0);       // >
+        do Output.create(64,30,51,51,59,59,59,27,3,30,0,0);  // @
+        do Output.create(63,30,51,51,24,12,12,0,12,12,0,0);  // ?
+
+        do Output.create(65,12,30,51,51,63,51,51,51,51,0,0); // A 
+        do Output.create(66,31,51,51,51,31,51,51,51,31,0,0); // B
+        do Output.create(67,28,54,35,3,3,3,35,54,28,0,0);    // C
+        do Output.create(68,15,27,51,51,51,51,51,27,15,0,0); // D
+        do Output.create(69,63,51,35,11,15,11,35,51,63,0,0); // E
+        do Output.create(70,63,51,35,11,15,11,3,3,3,0,0);    // F
+        do Output.create(71,28,54,35,3,59,51,51,54,44,0,0);  // G
+        do Output.create(72,51,51,51,51,63,51,51,51,51,0,0); // H
+        do Output.create(73,30,12,12,12,12,12,12,12,30,0,0); // I
+        do Output.create(74,60,24,24,24,24,24,27,27,14,0,0); // J
+        do Output.create(75,51,51,51,27,15,27,51,51,51,0,0); // K
+        do Output.create(76,3,3,3,3,3,3,35,51,63,0,0);       // L
+        do Output.create(77,33,51,63,63,51,51,51,51,51,0,0); // M
+        do Output.create(78,51,51,55,55,63,59,59,51,51,0,0); // N
+        do Output.create(79,30,51,51,51,51,51,51,51,30,0,0); // O
+        do Output.create(80,31,51,51,51,31,3,3,3,3,0,0);     // P
+        do Output.create(81,30,51,51,51,51,51,63,59,30,48,0);// Q
+        do Output.create(82,31,51,51,51,31,27,51,51,51,0,0); // R
+        do Output.create(83,30,51,51,6,28,48,51,51,30,0,0);  // S
+        do Output.create(84,63,63,45,12,12,12,12,12,30,0,0); // T
+        do Output.create(85,51,51,51,51,51,51,51,51,30,0,0); // U
+        do Output.create(86,51,51,51,51,51,30,30,12,12,0,0); // V
+        do Output.create(87,51,51,51,51,51,63,63,63,18,0,0); // W
+        do Output.create(88,51,51,30,30,12,30,30,51,51,0,0); // X
+        do Output.create(89,51,51,51,51,30,12,12,12,30,0,0); // Y
+        do Output.create(90,63,51,49,24,12,6,35,51,63,0,0);  // Z
+
+        do Output.create(91,30,6,6,6,6,6,6,6,30,0,0);          // [
+        do Output.create(92,0,0,1,3,6,12,24,48,32,0,0);        // \
+        do Output.create(93,30,24,24,24,24,24,24,24,30,0,0);   // ]
+        do Output.create(94,8,28,54,0,0,0,0,0,0,0,0);          // ^
+        do Output.create(95,0,0,0,0,0,0,0,0,0,63,0);           // _
+        do Output.create(96,6,12,24,0,0,0,0,0,0,0,0);          // `
+
+        do Output.create(97,0,0,0,14,24,30,27,27,54,0,0);      // a
+        do Output.create(98,3,3,3,15,27,51,51,51,30,0,0);      // b
+        do Output.create(99,0,0,0,30,51,3,3,51,30,0,0);        // c
+        do Output.create(100,48,48,48,60,54,51,51,51,30,0,0);  // d
+        do Output.create(101,0,0,0,30,51,63,3,51,30,0,0);      // e
+        do Output.create(102,28,54,38,6,15,6,6,6,15,0,0);      // f
+        do Output.create(103,0,0,30,51,51,51,62,48,51,30,0);   // g
+        do Output.create(104,3,3,3,27,55,51,51,51,51,0,0);     // h
+        do Output.create(105,12,12,0,14,12,12,12,12,30,0,0);   // i
+        do Output.create(106,48,48,0,56,48,48,48,48,51,30,0);  // j
+        do Output.create(107,3,3,3,51,27,15,15,27,51,0,0);     // k
+        do Output.create(108,14,12,12,12,12,12,12,12,30,0,0);  // l
+        do Output.create(109,0,0,0,29,63,43,43,43,43,0,0);     // m
+        do Output.create(110,0,0,0,29,51,51,51,51,51,0,0);     // n
+        do Output.create(111,0,0,0,30,51,51,51,51,30,0,0);     // o
+        do Output.create(112,0,0,0,30,51,51,51,31,3,3,0);      // p
+        do Output.create(113,0,0,0,30,51,51,51,62,48,48,0);    // q
+        do Output.create(114,0,0,0,29,55,51,3,3,7,0,0);        // r
+        do Output.create(115,0,0,0,30,51,6,24,51,30,0,0);      // s
+        do Output.create(116,4,6,6,15,6,6,6,54,28,0,0);        // t
+        do Output.create(117,0,0,0,27,27,27,27,27,54,0,0);     // u
+        do Output.create(118,0,0,0,51,51,51,51,30,12,0,0);     // v
+        do Output.create(119,0,0,0,51,51,51,63,63,18,0,0);     // w
+        do Output.create(120,0,0,0,51,30,12,12,30,51,0,0);     // x
+        do Output.create(121,0,0,0,51,51,51,62,48,24,15,0);    // y
+        do Output.create(122,0,0,0,63,27,12,6,51,63,0,0);      // z
+        
+        do Output.create(123,56,12,12,12,7,12,12,12,56,0,0);   // {
+        do Output.create(124,12,12,12,12,12,12,12,12,12,0,0);  // |
+        do Output.create(125,7,12,12,12,56,12,12,12,7,0,0);    // }
+        do Output.create(126,38,45,25,0,0,0,0,0,0,0,0);        // ~
+
+		return;
+    }
+	
+	/**
+	 * Creates the character map array of the given character index, using the given values.
+	 *
+	 * PRECONDITION: charMaps has been initialised.
+	 * POSTCONDITION: Adds the specified bit map to the specified index in charMaps.
+	 *
+	 */
+    function void create(int index, int row1, int row2, int row3, int row4, int row5,
+                         int row6, int row7, int row8, int row9, int row10, int row11) 
+	{
+		var Array map;
+
+		let map = Array.new(11);
+        let charMaps[index] = map;
+
+        let map[0] = row1;
+        let map[1] = row2;
+        let map[2] = row3;
+        let map[3] = row4;
+        let map[4] = row5;
+        let map[5] = row6;
+        let map[6] = row7;
+        let map[7] = row8;
+        let map[8] = row9;
+        let map[9] = row10;
+        let map[10] = row11;
+
+        return;
+    }
+    
+	/**
+	 * Returns the character map (array of size 11) of the given character.
+     * If the given character is invalid or non-printable, returns the
+     * character map of a black square.
+	 *
+	 * PRECONDITION: init() has been invoked.
+	 * POSTCONDITION: Returns the bit map for the specified character.
+	 *
+	 */
+    function Array getMap(char characterToGetBitMapFor) 
+	{
+        if ((characterToGetBitMapFor < 32) | (characterToGetBitMapFor > 126)) 
+		{
+            let characterToGetBitMapFor = 0;
+        }
+		
+        return charMaps[characterToGetBitMapFor];
+    }
+	
+	/**
+	 * Moves the cursor to the specified row and column, and erases the character displayed there. 
+	 * If row and or column are not valid coordinates, the method does nothing.
+	 *
+	 * PRECONDITION: init() has been invoked.
+	 * POSTCONDITION: Sets cursorRow to row, and cursorColumn to column, and prints whitespace at the specified location.
+	 *
+	 */
+    function void moveCursor(int row, int column) 
+	{
+		// To hold the whitespace character to print.
+		var char whitespace;
+		
+		// If row is not 0 < row <= maxRows, or column is not 0 < column <= maxColumns, end the method.
+		if(((row < 0) | row > maxRows) | ((column < 0) | (column > maxColumns)))
+		{
+			return;
+		}
+		
+		// Set whitespace to the ASCII value for whitespace.
+		let whitespace = 32;
+		
+		// Set the cursor to the specified location.
+		let cursorRow = row;
+		let cursorColumn = column;
+		
+		// Print whitespace at the specified ocation.
+		do Output.printChar(whitespace);
+		
+		// Return the cursor to the specified location after printing the whitespace.
+		let cursorRow = row;
+		let cursorColumn = column;
+		
+		return;
+    }
+
+	/**
+	 * Displays the given character at the cursor location,
+     * and advances the cursor one column forward.
+	 *
+	 * PRECONDITION: init() has been invoked.
+	 * POSTCONDITION: Prints the specified character to the screen at cursor's current location, then moves cursor to the next available column.
+	 *
+	 */
+    function void printChar(char characterToPrint) 
+	{
+		var int currentRow;                      // To hold the row of the register needed to change to print the character.
+		var int currentColumn;                   // To hold the column of the register needed to change to print the character.
+		
+		var int currentLineBitsDecimal;          // To hold the current decimal value of the register needed to change.
+		
+		var Array characterBitsDecimals;		 // To holds the decimal values of the bit map for the character.
+		var int currentCharacterLineBitsDecimal; // To hold the decimal value of the current line of the bit map being printed.
+		
+		var int rowIterationCounter;             // Counter for the while loop.
+		
+		var int registerToChange;                // To hold the address of the register needed to change to print the character.
+		
+		// If the cursor is at the end of the screen, print a new line.
+		if((cursorColumn > maxColumns))
+		{
+			do Output.println();
+		}
+	
+		// Get the decimal values for the bitmap for the character to print.
+		let characterBitsDecimals = Output.getMap(characterToPrint);
+		
+		// Calculate the exact row and column of the registers needed to change to print the character for the current cursor position.
+		// Since each cursor row has a width of 11, and length of 8 pixels, all that is required is to mulitply the current position by those values.
+		let currentRow = cursorRow * rowWidth;
+		let currentColumn = cursorColumn * columnWidth;
+		let registerToChange = 16384 + ((currentRow * 32) + (currentColumn / 16));
+		
+		let rowIterationCounter = 0;
+		
+		// Loop for the 11 rows needed to print a character.
+		while(rowIterationCounter < 11)
+		{
+			// Get the decimal value stored at RAM[registerToChange], and the decimal value of the current row of the bit map.
+			let currentLineBitsDecimal = Memory.peek(registerToChange);
+			let currentCharacterLineBitsDecimal = characterBitsDecimals[rowIterationCounter];
+			
+			// Change the left or right side of the register, depending on the cursor's column. (true changes left side, false changes right side)
+			if(registerSideToUse[cursorColumn])
+			{
+				// AND currentLineBitsDecimal by 255 (0000 0000 1111 1111) to remove all values on the left side.
+				let currentLineBitsDecimal = currentLineBitsDecimal & (255);
+				
+				// Multiply currentCharacterLineBitsDecimal by 256 to left justify its binary digits.
+				let currentCharacterLineBitsDecimal = currentCharacterLineBitsDecimal * 256;
+				
+				// Set the left side of the current line bits to the bits for the bit map by ORing the two.
+				let currentLineBitsDecimal = currentLineBitsDecimal | currentCharacterLineBitsDecimal;
+			}
+			else
+			{
+				// AND currentLineBitsDecimal by -256 (1111 1111 0000 0000) to remove all values on the right side.
+				let currentLineBitsDecimal = currentLineBitsDecimal & (-256);
+				
+				// Set the right side of the current line bits to the bits for the bit map by ORing the two.
+				let currentLineBitsDecimal = currentLineBitsDecimal | currentCharacterLineBitsDecimal;
+			}
+			
+			// Update the register to reflect the new decimal.
+			do Memory.poke(registerToChange, currentLineBitsDecimal);
+			
+			let registerToChange = registerToChange + 32; // Move to the register directly below this one.
+			let rowIterationCounter = rowIterationCounter + 1;
+		}
+		
+		// Update the cursor's position to the next column.
+		let cursorColumn = cursorColumn + 1;
+		
+		return;
+    }
+	
+	/**
+	 *  Displays the given string starting at the cursor location,
+     *  and advances the cursor appropriately.
+	 *
+	 * PRECONDITION: init() has been invoked.
+	 * POSTCONDITION: Prints the specified String to the screen at cursor's current location, then moves the cursor accordingly.
+	 *
+	 */
+    function void printString(String stringToPrint) 
+	{
+		// Counter for the loop.
+		var int iterationCounter;
+		
+		let iterationCounter = 0;
+		
+		// Loop through all of the specified String.
+		while(iterationCounter < stringToPrint.length())
+		{
+			// Print the next character to the screen.
+			do Output.printChar(stringToPrint.charAt(iterationCounter));
+			
+			let iterationCounter = iterationCounter + 1;
+		}
+		
+		return;
+    }
+	
+	/**
+	 *  Displays the given integer starting at the cursor location,
+     *  and advances the cursor appropriately.
+	 *
+	 * PRECONDITION: init() has been invoked.
+	 * POSTCONDITION: Prints the specified int to the screen at cursor's current location, then moves the cursor accordingly.
+	 *
+	 */
+    function void printInt(int intToPrint) 
+	{
+		// To hold and convert the integer to print.
+		var String integerToPrint;
+		
+		// Convert the integer into a its String representation.
+		let integerToPrint = String.new(10);
+		do integerToPrint.setInt(intToPrint);
+		
+		// Print the int to the screen.
+		do Output.printString(integerToPrint);
+		
+		do integerToPrint.dispose();
+		
+		return;
+    }
+	
+	/**
+	 *  Advances the cursor to the beginning of the next line.
+	 *
+	 * PRECONDITION: init() has been invoked.
+	 * POSTCONDITION: Moves the cursor down a row and resets its column, 
+	 *                if the cursor is already at the bottom of the screen,
+     *           	  the cursor is restarted to the origin.
+	 *
+	 */
+    function void println() 
+	{
+		// If the cursor is already at the bottom of the screen, restart it to the origin.
+		if(cursorRow = maxRows)
+		{
+			let cursorRow = 0;
+			let cursorColumn = 0;
+		}
+		// Else move it down a row and reset its column.
+		else
+		{
+			let cursorRow = cursorRow + 1;
+			let cursorColumn = 0;
+		}
+		
+		return;
+    }
+
+	/**
+	 *  Moves the cursor one column back.
+	 *
+	 * PRECONDITION: init() has been invoked.
+	 * POSTCONDITION: Moves the cursor back a column, and removes the character printed there.
+	 *
+	 */
+    function void backSpace() 
+	{
+		if(cursorColumn = 0)
+		{
+			do Output.moveCursor(cursorRow - 1, cursorColumn);
+		}
+		else
+		{
+			do Output.moveCursor(cursorRow, cursorColumn - 1);
+		}
+		
+		return;
+    }
+}

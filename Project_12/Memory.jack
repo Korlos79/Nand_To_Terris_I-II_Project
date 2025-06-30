@@ -1,0 +1,185 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: hw09-nscudder/Memory.jack
+// Implemented by: Nathanael Scudder <nathanael478@gmail.com>
+// Last modified: 11:16 AM 4/20/2018
+
+/**
+ * This library provides two services: direct access to the computer's main
+ * memory (RAM), and allocation and recycling of memory blocks. The Hack RAM
+ * consists of 32,768 words, each holding a 16-bit binary number.
+ */ 
+class Memory 
+{
+	/* Holds the head of our list (a type of linked list algorithm) that holds all available 
+	 * blocks of memory available for allocation.
+	 * NOTES: Each memory block's size is the located at RAM[block], and their reference to
+     *	      the next block in the list is at RAM[block + 1], 0 means there is no reference to
+	 *        the next block.
+	 */
+	static int freeListHead;
+	
+	/** 
+	 * Performs initial setup for the Memory class.
+	 *
+	 * PRECONDITION: N/A
+	 * POSTCONDITON: Initialies freeListHead, so that available memory can be kept track of.
+	 *
+	 */
+    function void init() 
+	{
+	    // Create an array to access memory directly.
+		var Array memory;
+		let memory = 0;
+		
+		// Start the head at the start of the heap.
+		let freeListHead = 2048;
+		
+		// Set the first memory block to contain the whole heap, and reference to no other block.
+		let memory[freeListHead] = 14336;
+		let memory[freeListHead + 1] = 0;
+		
+		return;
+    }
+
+	/** 
+	 * Returns the RAM value at the given address.
+	 *
+	 * PRECONDITION: N/A
+	 * POSTCONDITON: Returns the value of the word held at RAM[address].
+	 *
+	 */
+    function int peek(int address) 
+	{
+		// Create an array to access memory directly. 
+		var Array memory;
+		let memory = 0;
+		
+		// Then return the contents of RAM[address].
+		return memory[address];
+    }
+	
+	/** 
+	 * Sets the RAM value at the given address to the given value.
+	 *
+	 * PRECONDITION: N/A
+	 * POSTCONDITON: Sets the word held by RAM[address] to the specified value.
+	 *
+	 */
+    function void poke(int address, int value) 
+	{
+		// Create an array to access memory directly. 
+		var Array memory;
+		let memory = 0;
+		
+		// Set RAM[address] to the specified value.
+		let memory[address] = value;
+		
+		return;
+    }
+	
+	/** 
+	 * Finds an available RAM block of the given size and returns
+     * a reference to its base address.
+	 *
+	 * PRECONDITION: init() has been invoked.
+	 * POSTCONDITON: Allocates part of a memory block held in free list and returns a reference to its address in RAM.
+	 *               The memory block that had this memory allocated from it is removed or has its size changed accordingly.
+	 *
+	 */
+    function int alloc(int sizeOfMemoryToAllocate) 
+	{
+		var int previousBlock;        // To hold a reference to the block previous to the current one.
+		var int currentBlock;         // To hold a reference to the block currently accessed.
+		var int currentBlockSize;     // To hold the size of the memory block currently accessed.
+		var int bestFitBlock;         // To hold a reference to the block closet to but not lower than the specified size + 1.
+		var int bestFitPreviousBlock; // To hold a reference to the block previous to the best fit block.
+		var int referenceToReturn;    // To hold the reference to the newly allocated memory block to return.
+		
+		// Set the current block to the first block in the free list, and get and store its size.
+		let currentBlock = freeListHead;
+		let currentBlockSize = Memory.peek(currentBlock);
+		
+		// Start bestFitBlock with the first block, and set its previous block to 0.
+		let bestFitBlock = freeListHead;
+		let bestFitPreviousBlock = 0;
+		
+		// While there are more blocks in the free list. (currentBlock's next reference is not 0)
+		while(~(Memory.peek(currentBlock + 1) = 0))
+		{
+			// Set previousBlock to the currentBlock from the previous iteration.
+			let previousBlock = currentBlock;
+		
+			// Set currentBlock to the next block in the list, and get and store its size.
+			let currentBlock = Memory.peek(currentBlock + 1);
+			let currentBlockSize = Memory.peek(currentBlock);
+			
+			// If currentBlock is more closely a fit for the memory block to allocate, i. e. it's size can hold
+			// the newly allocated memory, and is less than bestFitBlock's size, so long as bestFitBlock can hold it as well.
+			if((~(currentBlockSize < (sizeOfMemoryToAllocate + 1))) & ((currentBlockSize < Memory.peek(bestFitBlock)) | (Memory.peek(bestFitBlock) < (sizeOfMemoryToAllocate + 1))))
+			{
+				// Update the bestFitPreviousBlock and bestFitBlock to their current counterparts.
+				let bestFitPreviousBlock = previousBlock;
+				let bestFitBlock = currentBlock;
+			}
+		}
+		
+		// If bestFitBlock does not have enough space to be the newly allocated memory, i. e. no blocks that could do so were 
+		// found, halt the program.
+		if(Memory.peek(bestFitBlock) < (sizeOfMemoryToAllocate + 1))
+		{
+			do Sys.halt();
+		}
+		
+		// If all of the best fit block will be used up by the allocation, remove it from the list, and then return a reference to the best fit block.
+		if((Memory.peek(bestFitBlock) - (sizeOfMemoryToAllocate + 1)) < 2)
+		{
+			// If the best fit was the head of the free list, set the head to bestFitBlock's next reference.
+			if(bestFitPreviousBlock = 0)
+			{
+				let freeListHead = Memory.peek(bestFitBlock + 1);
+			}
+			// Else set the block previous to bestFitBlock's next reference to bestFitBlock's next reference.
+			else
+			{
+				do Memory.poke(bestFitPreviousBlock + 1, Memory.peek(bestFitBlock + 1));
+			}
+			
+			// Then return a reference to bestFitBlock, so that RAM[bestFitBlock - 1] is the size of the memory block.
+			return bestFitBlock + 1;
+		}
+		
+		// Otherwise, subtract the size of the block being allocated from bestFitBlock from its size.
+		do Memory.poke(bestFitBlock, (Memory.peek(bestFitBlock) - (sizeOfMemoryToAllocate + 1)));
+		
+		// Set the referenceToReturn to a memory block formed from the end of bestFitBlock, with enough space to hold (sizeOfMemoryToAllocate + 1) words.
+		let referenceToReturn = bestFitBlock + Memory.peek(bestFitBlock) + 1;
+		
+		// Set the newly allocated memory block's size to sizeOfMemoryToAllocate + 1.
+		do Memory.poke((referenceToReturn - 1), (sizeOfMemoryToAllocate + 1));
+		
+		// Return the reference to the newly allocated memory block, with RAM[referenceToReturn - 1] being the size of the block (used for deAlloc).
+		return referenceToReturn;
+    }
+	
+	/** 
+	 * De-allocates the given object (cast as an array) by making it available for future allocations. 
+	 *
+	 * PRECONDITION: init() has been invoked.
+	 * POSTCONDITON: Creates a memory block at the specified reference - 1, and then adds it to the front of the free list.
+	 *
+	 */
+    function void deAlloc(Array objectToDeAllocate) 
+	{
+		// Hold a reference to the size of objectToDeAllocate in memory.
+		var int freedBlock;
+		let freedBlock = objectToDeAllocate - 1;
+		
+		// Set the freed block's next to reference the former head of the free list, then set the head to the newly freed block.
+		do Memory.poke((freedBlock + 1), freeListHead);
+		let freeListHead = freedBlock;
+		
+		return;
+    }    
+}

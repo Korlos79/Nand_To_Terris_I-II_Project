@@ -1,0 +1,470 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: hw09-nscudder/Sreen.jack
+// Implemented by: Nathanael Scudder <nathanael478@gmail.com>
+// Last modified: 12:57 PM 4/20/2018
+
+/**
+ * A library of functions for displaying graphics on the screen.
+ * The Hack physical screen consists of 512 rows (indexed 0..511, top to bottom)
+ * of 256 pixels each (indexed 0..255, left to right). The top left pixel on 
+ * the screen is indexed (0,0).
+ */
+class Screen 
+{
+	// Holds the current draw color (true = black, false = white)
+	static boolean drawColor;
+	
+	// Holds values for 2 to the power of the index. (i. e. index 2 is the value of two to the power of two (4))
+	static Array powersOfTwo;
+	
+	/**
+	 * Initializes the screen, and starts the draw color at black. 
+	 *
+	 * PRECONDITION: Memory.init() has been invoked.
+	 * POSTCONDITION: Initialises the static variables for Screen.
+	 *
+	 */
+    function void init() 
+	{
+		// Start the draw color at black.
+		let drawColor = true;
+		
+		// Initialise powersOfTwo to hold the values for 2 to the power of that index, for all values that can be showed in 16 bit.
+		let powersOfTwo = Array.new(16);
+		let powersOfTwo[0] = 1;
+		let powersOfTwo[1] = 2;
+		let powersOfTwo[2] = 4;
+		let powersOfTwo[3] = 8;
+		let powersOfTwo[4] = 16;
+		let powersOfTwo[5] = 32;
+		let powersOfTwo[6] = 64;
+		let powersOfTwo[7] = 128;
+		let powersOfTwo[8] = 256;
+		let powersOfTwo[9] = 512;
+		let powersOfTwo[10] = 1024;
+		let powersOfTwo[11] = 2048;
+		let powersOfTwo[12] = 4096;
+		let powersOfTwo[13] = 8192;
+		let powersOfTwo[14] = 16384;
+		let powersOfTwo[15] = 32767 + 1; // overflows to -32768
+		
+		return;
+    }
+	
+	/**
+	 * Erases the entire screen.
+	 *
+	 * PRECONDITION: N/A
+	 * POSTCONDITION: Sets the contents of all registers in the screen memory map to hold 0, effectively erasing the screen.
+	 *
+	 */
+    function void clearScreen() 
+	{
+		// Start a counter at 16384, the first index of the screen memory map.
+		var int iterationCounter;
+		let iterationCounter = 16384;
+		
+		// Loop through all locations in the screen memory map.
+		while(iterationCounter < 24576)
+		{
+			// Set RAM[iterationCounter] to 0.
+			do Memory.poke(iterationCounter, 0);
+			
+			let iterationCounter = iterationCounter + 1;
+		}
+		
+		return;
+    }
+	
+	/**
+	 * Sets the current color, to be used for all subsequent drawXXX commands.
+     * Black is represented by true, white by false.
+	 *
+	 * PRECONDITION: N/A
+	 * POSTCONDITION: Sets the draw color to the specified color (true = black, false = white).
+	 *
+	 */
+    function void setColor(boolean newDrawColor) 
+	{
+		let drawColor = newDrawColor;
+		return;
+    }
+	
+	/**
+	 * Draws the (x,y) pixel, using the current color.
+	 *
+	 * PRECONDITION: init() has been invoked.
+	 * POSTCONDITION: Sets the bit in the screen memory map corresponding to the given coordinates to the draw color.
+	 *
+	 */
+    function void drawPixel(int x, int y) 
+	{
+		var int bitToChange;       // To hold the index in the register to change to draw the pixel.
+		var int registerToChange;  // To hold the address of the register to change to draw the pixel.
+		var int registerValue;     // To hold the current decimal value held in the register to change.
+		
+		// Calculate the register's location for the given coordinates, then set bitToChange to the remainder of the given x coordinate divided by 16.
+		let bitToChange = x / 16;
+		let registerToChange = 16384 + ((y * 32) + (bitToChange));
+		let bitToChange = x - (bitToChange * 16);
+		
+		// Get the decimal value held at RAM[registerToChange].
+		let registerValue = Memory.peek(registerToChange);
+		
+		// Draw in black in drawColor is true, else draw in white.
+		if(drawColor)
+		{
+			// OR registerValue by 2 to the power of bitToChange, which effectively guarantees bitToChange in registerValue is now true. (or black rather),
+			// and no other bit is changed.
+			let registerValue = registerValue | powersOfTwo[bitToChange];
+		}
+		else
+		{
+			// AND registerValue by the boolean negated value of 2 to the power of bitToChange, which effectively guarantees bitToChange in registerValue is now false. (or white rather),
+			// and no other bit is changed.
+			let registerValue = registerValue & (~powersOfTwo[bitToChange]);
+		}
+		
+		// Update the register to reflect the changes.
+		do Memory.poke(registerToChange, registerValue);
+		return;
+    }
+	
+	/**
+	 * Draws a line from pixel (x1,y1) to pixel (x2,y2), using the current color.
+	 *
+	 * PRECONDITION: init() has been invoked.
+	 * POSTCONDITION: Sets the bits in the screen memory map in a zig-zag corresponding given line coordinates to the draw color.
+	 *
+	 */
+    function void drawLine(int x1, int y1, int x2, int y2) 
+	{
+		var int xOffset;          // To hold the amount to change x by for the next pixel.
+		var int yOffset;          // To hold the amount to change y by for the next pixel.
+		var int lineDivergence;   // To hold how close the line is to the correct slope.
+		var int deltaX;           // To hold the difference between x2 and x1.
+		var int deltaY;           // To hold the difference between y2 and y1.
+		var int bitToChange;      // To hold the index in the register to change to draw the pixel.
+		var int registerToChange; // To hold the address of the register to change to draw the pixel.
+		var int registerValue;    // To hold the current decimal value held in the register to change.
+		var int iterationCounter; // Counter for the while loops.
+		
+		// Used for horizontal and verticle lines, to hold the start and end points.
+		var int xStart;           
+		var int yStart;
+		var int xEnd;
+		var int yEnd;
+		
+		let xOffset = 0;
+		let yOffset = 0;
+		let lineDivergence = 0;
+		
+		// Set the delta values to their respective differences.
+		let deltaX = x2 - x1;
+		let deltaY = y2 - y1;
+		
+		// If both coordinates are the same, draw a pixel at the given coordinates.
+		if((deltaX = 0) & (deltaY = 0))
+		{
+			do Screen.drawPixel(x1, y1);
+			
+			return;
+		}
+		
+		// If the line to draw has two positive deltas. (i. e. the line is traveling in a south-east direction)
+		if((deltaX > 0) & (deltaY > 0))
+		{
+			// While the x and y offsets are not greater than their respective deltas.
+			while((~(xOffset > deltaX)) & (~(yOffset > deltaY)))
+			{
+				// Draw a pixel at the offset coordinates.
+				do Screen.drawPixel((x1 + xOffset), (y1 + yOffset));
+				
+				// If the line is overshooting, increase the x offset, otherwise increase the y offset.
+				if(lineDivergence < 0)
+				{
+					let xOffset = xOffset + 1;
+					
+					// increasing the x offset increases the line divergence by delta y.
+					let lineDivergence = lineDivergence + deltaY; 
+				}
+				else
+				{
+					let yOffset = yOffset + 1;
+					
+					// increasing the y offset decreases the line divergence by delta x.
+					let lineDivergence = lineDivergence - deltaX; 
+				}
+			}
+			
+			return;
+		}
+		
+		// If the line to draw has two negative deltas. (i. e. the line is traveling in a north-west direction)
+		if((deltaX < 0) & (deltaY < 0))
+		{
+			// While the x and y offsets are not less than their respective deltas. 
+			while((~(xOffset < deltaX)) & (~(yOffset < deltaY)))
+			{
+				// Draw a pixel at the offset coordinates.
+				do Screen.drawPixel((x1 + xOffset), (y1 + yOffset));
+				
+				// If the line is overshooting, decrease the x offset, otherwise decrease the y offset.
+				if(lineDivergence < 0)
+				{
+					let xOffset = xOffset - 1;
+					
+					// decreasing the x offset decreases the line divergence by delta y.
+					let lineDivergence = lineDivergence - deltaY; 
+				}
+				else
+				{
+					let yOffset = yOffset - 1;
+					
+					// decreasing the y offset increases the line divergence by delta x.
+					let lineDivergence = lineDivergence + deltaX; 
+				}
+			}
+			
+			return;
+		}
+		
+		// If delta y is negative, and delta x is positive. (i. e. the line is traveling in a north-east direction)
+		if((deltaX > 0) & (deltaY < 0))
+		{
+			// While the x offset is not greater than delta x, and the y offset is not less than delta y. 
+			while((~(xOffset > deltaX)) & (~(yOffset < deltaY)))
+			{
+				// Draw a pixel at the offset coordinates.
+				do Screen.drawPixel((x1 + xOffset), (y1 + yOffset));
+				
+				// If the line is overshooting, increase the x offset, otherwise decrease the y offset.
+				if(lineDivergence < 0)
+				{
+					let xOffset = xOffset + 1;
+					
+					// Since delta y is negative, increasing the x offset decreases the line divergence by delta y.
+					let lineDivergence = lineDivergence - deltaY; 
+				}
+				else
+				{
+					let yOffset = yOffset - 1;
+					
+					// increasing the y offset decreases the line divergence by delta x.
+					let lineDivergence = lineDivergence - deltaX;
+				}
+			}
+			
+			return;
+		}
+		
+		// If delta x is negative, and delta y is positive. (i. e. the line is traveling in a south-west direction)
+		if((deltaX < 0) & (deltaY > 0))
+		{
+			// While the x offset is not less than delta x, and the y offset is not greater than delta y.
+			while((~(xOffset < deltaX)) & (~(yOffset > deltaY)))
+			{
+				// Draw a pixel at the offset coordinates.
+				do Screen.drawPixel((x1 + xOffset), (y1 + yOffset));
+				
+				// If the line is overshooting, decrease the x offset, otherwise increase the y offset.
+				if(lineDivergence < 0)
+				{
+					let xOffset = xOffset - 1;
+					
+					// decreasing the x offset increases the line divergence by delta y.
+					let lineDivergence = lineDivergence + deltaY;
+				}
+				else
+				{
+					let yOffset = yOffset + 1;
+					
+					// Since delta x is negative, increasing the y offset increases the line divergence by delta x.
+					let lineDivergence = lineDivergence + deltaX;
+				}
+			}
+			
+			return;
+		}
+		
+		// The rest of the code applies for horizontal and vertical lines.
+		
+		
+		// Set xStart to the left most of the two x coordinates, and xEnd to the other.
+		if(x2 < x1)
+		{
+			let xStart = x2;
+			let xEnd = x1;
+		}
+		else
+		{
+			let xStart = x1;
+			let xEnd = x2;
+		}
+		
+		// Set yStart to the top most of the two y coordinates, and yEnd to the other.
+		if(y2 < y1)
+		{
+			let yStart = y2;
+			let yEnd = y1;
+		}
+		else
+		{
+			let yStart = y1;
+			let yEnd = y2;
+		}
+		
+		// Calculate the location of the register at the specified coordinates.
+		let bitToChange = xStart / 16;
+		let registerToChange = 16384 + ((yStart * 32) + (bitToChange));
+		let bitToChange = xStart - (bitToChange * 16);
+		
+		// If delta y is 0 (i. e. horizontal line)
+		if(deltaY = 0)
+		{
+			// While xStart is not greater than xEnd.
+			while(~(xStart > xEnd))
+			{
+				// Get the word held by the register at the current location.
+				let registerValue = Memory.peek(registerToChange);
+				
+				// Draw in black in drawColor is true, else draw in white.
+				if(drawColor)
+				{
+					// OR registerValue by 2 to the power of bitToChange, which effectively guarantees bitToChange in registerValue is now true. (or black rather),
+					// and no other bit is changed.
+					let registerValue = registerValue | powersOfTwo[bitToChange];
+				}
+				else
+				{		
+					// AND registerValue by the boolean negated value of 2 to the power of bitToChange, which effectively guarantees bitToChange in registerValue is now false. (or white rather),
+					// and no other bit is changed.
+					let registerValue = registerValue & (~powersOfTwo[bitToChange]);
+				}
+			
+				// Update the value of the register to reflect the drawing of the pixel.
+				do Memory.poke(registerToChange, registerValue);
+				
+				// If bitToChange equals 15, reset it to 0 and move to the next register, else increment bitToChange and xStart.
+				if(bitToChange = 15)
+				{
+					let bitToChange = 0;
+					let registerToChange = registerToChange + 1;
+				}
+				else
+				{
+					let bitToChange = bitToChange + 1;
+				}
+				
+				let xStart = xStart + 1;
+			}
+		}
+		// Else the line is vertical.
+		else
+		{
+			// While yStart is not greater than yEnd.
+			while(~(yStart > yEnd))
+			{
+				// Get the word held by the register at the current location.
+				let registerValue = Memory.peek(registerToChange);
+				
+				// Draw in black in drawColor is true, else draw in white.
+				if(drawColor)
+				{
+					// OR registerValue by 2 to the power of bitToChange, which effectively guarantees bitToChange in registerValue is now true. (or black rather),
+					// and no other bit is changed.
+					let registerValue = registerValue | powersOfTwo[bitToChange];
+				}
+				else
+				{		
+					// AND registerValue by the boolean negated value of 2 to the power of bitToChange, which effectively guarantees bitToChange in registerValue is now false. (or white rather),
+					// and no other bit is changed.
+					let registerValue = registerValue & (~powersOfTwo[bitToChange]);
+				}
+				
+				// Update the value of the register to reflect the drawing of the pixel.
+				do Memory.poke(registerToChange, registerValue);
+				
+				// Move to the register directly below this one, and increment yStart.
+				let registerToChange = registerToChange + 32;
+				
+				let yStart = yStart + 1;
+			}
+		}
+		
+		return;
+    }
+	
+	/**
+	 * Draws a filled rectangle whose top left corner is (x1, y1)
+     * and bottom right corner is (x2,y2), using the current color.
+	 *
+	 * PRECONDITION: init() has been invoked.
+	 * POSTCONDITION: A filled rectangle which an upper left corner of x1, xy1, and bottom right corner of x2, y2 has been drawn to the screen.
+	 *
+	 */
+    function void drawRectangle(int x1, int y1, int x2, int y2) 
+	{
+		// To hold the amount of offset y by when drawing the lines.
+		var int yOffset;
+		
+		// While y1 plus its offset is not greater than y2.
+		while(~((y1 + yOffset) > y2))
+		{
+			// draw a horizontal line between x1 and x2, with y coordinates of y1 plus its offset.
+			do Screen.drawLine(x1, (y1 + yOffset), x2, (y1 + yOffset));
+			
+			// Increase the y offset by 1.
+			let yOffset = yOffset + 1;
+		}
+		
+		return;
+    }
+	
+	/**
+	 * Draws a filled circle of radius r<=181 around (x,y), using the current color.
+	 *
+	 * PRECONDITION: init() has been invoked.
+	 * POSTCONDITION: A filled circle with the specified radius is drawn centered at the given coordinates.
+	 *
+	 */
+    function void drawCircle(int x, int y, int r) 
+	{
+		var int deltaY;        // To hold the distance in which the next line to draw is from the center.
+		var int radiusSquared; // To hold the value of the radius squared, so that it only has to be calculated once.
+		var int xOffset;       // To hold the offset for the x coordinate.
+		
+		// If the radius given is greater than 181, an accurate circle cannot be drawn, end the method.
+		if(r > 181)
+		{
+			return;
+		}
+		
+		// Start delta y at 1, and get the value of r squared.
+		let deltaY = 1;
+		let radiusSquared = r * r;
+		
+		// Draw a horizontal line going the diameter of the circle, through the center point.
+		do Screen.drawLine(x - r, y, x + r, y);
+		
+		// While delta y is not greater than the radius.
+		while(~(deltaY > r))
+		{
+			// We need to find the x coordinate to draw the next line at, since we are forming a right
+			// triangle with the next point, with radius being the hypotenuse, with leg a being delta y,
+			// we can calculate leg b (or rather the x offset) using the Pythagorean theorem.
+			let xOffset = Math.sqrt((radiusSquared - (deltaY * deltaY)));
+			
+			// Since the circle is symetical, we can use the calculated x offset to draw two horizontal
+			// lines at the calculated x coordinate, with y offset by delta y in both directions.
+			do Screen.drawLine(x - xOffset, y + deltaY, x + xOffset, y + deltaY);
+			do Screen.drawLine(x - xOffset, y - deltaY, x + xOffset, y - deltaY);
+			
+			let deltaY = deltaY + 1;
+		}
+		
+		return;
+    }
+}

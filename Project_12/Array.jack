@@ -1,0 +1,42 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: hw09-nscudder/Array.jack
+// Implemented by: Nathanael Scudder <nathanael478@gmail.com>
+// Last modified: 11:17 PM 4/19/2018
+
+/**
+ * Represents an array.
+ * In the Jack language, arrays are instances of the Array class.
+ * Once declared, the array entries can be accessed using the usual
+ * syntax arr[i]. Each array entry can hold a primitive data type as 
+ * well as any object type. Different array entries can have different 
+ * data types.
+ */
+class Array 
+{
+    /**
+	 * Constructs a new Array of the given size.
+	 * 
+	 * PRECONDITION: Memory.init() has been invoked.
+	 * POSTCONDITION: Allocates memory for this Array and returns its base address.
+	 *
+	 */
+    function Array new(int size) 
+	{
+		return  Memory.alloc(size);
+    }
+
+	/**
+	 * Disposes this array.
+	 * 
+	 * PRECONDITION: Memory.init() has been invoked.
+	 * POSTCONDITION: Deallocates the memory reserved for this Array.
+	 *
+	 */
+    method void dispose() 
+	{
+		do Memory.deAlloc(this);
+		return;
+    }
+}

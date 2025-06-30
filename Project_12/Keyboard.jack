@@ -1,0 +1,224 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: hw09-nscudder/Keyboard.jack
+// Implemented by: Nathanael Scudder <nathanael478@gmail.com>
+// Last modified: 11:18 PM 4/19/2018
+
+/**
+ * A library for handling user input from the keyboard.
+ */
+class Keyboard 
+{
+	/**
+	 * Initializes the keyboard.
+	 *
+	 * PRECONDITION: N/A
+	 * POSTCONDITION: Initalises Keyboard.
+	 *
+	 */
+    function void init() 
+	{
+		return;
+    } 
+
+    /**
+     * Returns the character of the currently pressed key on the keyboard;
+     * if no key is currently pressed, returns 0.
+     *
+     * Recognizes all ASCII characters, as well as the following keys:
+     * new line = 128 = String.newline()
+     * backspace = 129 = String.backspace()
+     * left arrow = 130
+     * up arrow = 131
+     * right arrow = 132
+     * down arrow = 133
+     * home = 134
+     * End = 135
+     * page up = 136
+     * page down = 137
+     * insert = 138
+     * delete = 139
+     * ESC = 140
+     * F1 - F12 = 141 - 152
+	 *
+	 * PRECONDITION: N/A
+	 * POSTCONDITION: Returns the char being held at RAM[24576] (the memory mapped location of the keyboard).
+	 *
+     */
+    function char keyPressed() 
+	{
+		var char keyPressed;
+		
+		// Peek RAM[24576], then return the value stored there.
+		let keyPressed = Memory.peek(24576);
+		return keyPressed;
+    }
+
+    /**								
+     * Waits until a key is pressed on the keyboard and released,
+     * then echoes the key to the screen, and returns the character 
+     * of the pressed key.
+	 *
+	 * PRECONDITION: Output.init() has been invoked.
+	 * POSTCONDITION: Returns the next non-zero value held at RAM[24576] and prints it to the screen.
+	 *
+     */
+    function char readChar() 
+	{
+		var char keyPressed;       // To hold the key currently being pressed.
+		var char characterToPrint; // To hold the character to print to the screen.
+		var char cursor;           // To hold the cursor to display to the screen.
+		
+		// Get the key currently being pressed, then set cursor to the '|' character.
+		let keyPressed = Keyboard.keyPressed();
+		let cursor = 124; // |
+		
+		// Wait until no key is being pressed.
+		while(~(keyPressed = 0))
+		{
+			let keyPressed = Keyboard.keyPressed();
+		}
+		
+		// Repeatedly show and remove the cursor where the next character will be printed, and wait until a key is pressed.
+		while(keyPressed = 0)
+		{
+			do Output.printChar(cursor);
+			do Sys.wait(20);
+			do Output.backSpace();
+			do Sys.wait(20);
+			
+			let keyPressed = Keyboard.keyPressed();
+		}
+		
+		// Get the character to print.
+		let characterToPrint = keyPressed;
+		
+		// Wait until no key is being pressed.
+		while(~(keyPressed = 0))
+		{
+			let keyPressed = Keyboard.keyPressed();
+		}
+		
+		// Print the character entered to the screen, and return it.
+		do Output.printChar(characterToPrint);
+		return characterToPrint;
+    }
+
+    /**								
+     * Displays the message on the screen, reads from the keyboard the entered
+     * text until a newline character is detected, echoes the text to the screen,
+     * and returns its value. Also handles user backspaces.
+     *
+	 * PRECONDITION: Output.init() has been invoked.
+	 * POSTCONDITION: Prints the specified String argument, then returns a String made up of characters 
+	 *                entered by the user that is also printed to the screen.
+	 *
+     */
+    function String readLine(String message) 
+	{
+		var String stringEntered;   // To hold the characters entered by the user.
+		var char nextReadCharacter; // To hold the next character entered by the user.
+		var boolean continueLoop;   // To control the loop, should be true until the user enters a new line.
+		
+		// Print the message to the user, and initialise continueLoop and stringEntered.
+		do Output.printString(message);
+		
+		let continueLoop = true;
+		let stringEntered = String.new(60);
+		
+		// While the user has not entered a new line.
+		while(continueLoop)
+		{
+			// Read in the next character, while also printing it to the screen.
+			let nextReadCharacter = Keyboard.readChar();
+			
+			// If the user entered a new line, set continueLoop to false.
+			if(nextReadCharacter = String.newLine())
+			{
+				let continueLoop = false;
+			}
+			
+			// Else if the user entered a backSpace, remove the last character entered from stringEntered (if it is not already empty)
+			if((nextReadCharacter = String.backSpace()))
+			{
+				if(~(stringEntered.length() = 0))
+				{
+					do stringEntered.eraseLastChar();
+				}
+			}
+			// Else append the entered character into stringEntered.
+			else
+			{
+				if(continueLoop)
+				{
+					do stringEntered.appendChar(nextReadCharacter);
+				}
+			}
+		}
+		
+		return stringEntered;
+    }   
+
+    /**								
+     * Displays the message on the screen, reads from the keyboard the entered
+     * text until a newline character is detected, echoes the text to the screen,
+     * and returns its integer value (until the first non-digit character in the
+     * entered text is detected that is not a minus symbol). Also handles user backspaces. 
+	 *
+     * PRECONDITION: Output.init() has been invoked.
+	 * POSTCONDITION: Prints the specified String argument, then returns a int made up of characters 
+	 *                entered by the user that is also printed to the screen.
+	 *
+     */
+    function int readInt(String message) 
+	{
+		var String stringEntered;   // To hold the characters entered by the user.
+		var char nextReadCharacter; // To hold the next character entered by the user.
+		var boolean continueLoop;   // To control the loop, should be true until the user enters a new line.
+		var int intToReturn;        // To hold the int value to return;
+		
+		// Print the message to the user, and initialise continueLoop and stringEntered.
+		do Output.printString(message);
+		
+		let continueLoop = true;
+		let stringEntered = String.new(60);
+		
+		// While the user has not entered a new line.
+		while(continueLoop)
+		{
+			// Read in the next character, while also printing it to the screen.
+			let nextReadCharacter = Keyboard.readChar();
+			
+			// If the user entered anything other than the numbers [1, 9] (interval notation), '-', or a back space, set continueLoop to false.
+			if((~(nextReadCharacter = String.backSpace())) & ((nextReadCharacter = String.newLine()) | ((nextReadCharacter < 48) & (~(nextReadCharacter = 45))) | ((nextReadCharacter > 57) & (~(nextReadCharacter = 45)))))
+			{
+				let continueLoop = false;
+			}
+			
+			// Else if the user entered a backSpace, remove the last character entered from stringEntered (if it is not already empty)
+			if((nextReadCharacter = String.backSpace()))
+			{
+				if(~(stringEntered.length() = 0))
+				{
+					do stringEntered.eraseLastChar();
+				}
+			}
+			// Else append the entered character into stringEntered.
+			else
+			{
+				if(continueLoop)
+				{
+					do stringEntered.appendChar(nextReadCharacter);
+				}
+			}
+		}
+		
+		// Translate stringEntered into its int value and then return it.
+		let intToReturn = stringEntered.intValue();
+		
+		do stringEntered.dispose();
+		
+		return intToReturn;
+    }
+}

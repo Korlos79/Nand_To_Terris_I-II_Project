@@ -1,0 +1,129 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: hw09-nscudder/Sys.jack
+// Implemented by: Nathanael Scudder <nathanael478@gmail.com>
+// Last modified: 1:21 PM 4/20/2018
+
+/**
+ * A library that supports various program execution services.
+ */
+class Sys 
+{
+
+    /** 
+	 * Performs all the initializations required by the OS. 
+	 * 
+	 * PRECONDITION: N/A
+	 * POSTCONDITION: Invokes all OS classes' init() (if they have one),
+     *                then invokes Main.main(), then halts the program.
+	 * 
+	 */
+    function void init() 
+	{
+		// Memory.init() must be done first as most of the other classes's init() need Memory working.
+		do Memory.init();
+		do Math.init();
+		do Output.init();
+		do Screen.init();
+		do Keyboard.init();
+		
+		// After invoking all of the init()s, start the program, after the program finishes, halt.
+		do Main.main();
+		do Sys.halt();
+		return;
+    }
+	
+	/** 
+	 * Halts the program execution.
+	 * 
+	 * PRECONDITION: N/A
+	 * POSTCONDITION: Runs an infinite loop.
+	 * 
+	 */
+    function void halt() 
+	{
+		while(true)
+		{
+			// Loop forever.
+		}
+		
+		return;
+    }
+	
+	/** 
+	 * Waits approximately duration milliseconds and returns.
+	 * 
+	 * PRECONDITION: init() has been invoked.
+	 * POSTCONDITION: Performs math operations until a time near duration has passed.
+	 * 
+	 */
+    function void wait(int duration)
+	{
+		var int badMath;                // To hold the result of the math operations.
+		var int iterationCounter;       // To hold the iteration counter for the outer while loop.
+		var int secondIterationCounter; // To hold the iteration counter for the inner while loop.
+		
+		// Start the counter at 0.
+		let iterationCounter = 0;
+		
+		while(iterationCounter < duration)
+		{
+			// Reset the counter to 0.
+			let secondIterationCounter = 0;
+			
+			// Run the inner loop 335 times, which takes about a millisecond, or a little over.
+			while(secondIterationCounter < 335)
+			{
+				let badMath = 525 + 525;
+				
+				let secondIterationCounter = secondIterationCounter + 1;
+			}
+			
+			let iterationCounter = iterationCounter + 1;
+		}
+		
+		return;
+    }
+	
+	/** 
+	 * Displays the given error code in the form "ERR<errorCode>",
+     * and halts the program's execution.
+	 * 
+	 * PRECONDITION: init() has been invoked.
+	 * POSTCONDITION: Displays the given error code in the form "ERR<errorCode>",
+     *                and halts the program's execution.
+	 * 
+	 */
+    function void error(int errorCode) 
+	{
+		var String fullErrorCode;   // To hold the error code to print.
+		var String errorCodeNumber; // To hold the String representation of the error code.
+		var int iterationCounter;   // Iteration counter for the loop.
+		
+		let fullErrorCode = "ERR";
+		
+		// Set errorCodeNumber to the String representation of the error code.
+		let errorCodeNumber = String.new(10);
+		do errorCodeNumber.setInt(errorCode);
+		
+		let iterationCounter = 0;
+		
+		// Loop through errorCodeNumber, and append each number to fullErrorCode.
+		while(iterationCounter < errorCodeNumber.length())
+		{
+			do fullErrorCode.appendChar(errorCodeNumber.charAt(iterationCounter));
+			
+			let iterationCounter = iterationCounter + 1;
+		}
+		
+		// Print the error code, then hald the system.
+		do Output.printString(fullErrorCode);
+		
+		do fullErrorCode.dispose();
+		do errorCodeNumber.dispose();
+		
+		do Sys.halt();
+		return;
+    }
+}
